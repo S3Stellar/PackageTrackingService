@@ -1,6 +1,7 @@
 package com.example.demo.Converter;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import javax.annotation.PostConstruct;
@@ -25,7 +26,7 @@ public class TrackConverter {
 		try {
 			return new Track(trackBoundary.getUser(), trackBoundary.getOrder(), trackBoundary.getAddress(), new Date(),
 					dateFormat.parse(trackBoundary.getApproximatedArrivalDate()), trackBoundary.getStatus(),
-					trackBoundary.getDescription());
+					trackBoundary.getDescription(), new ArrayList<>());
 		} catch (Exception e) {
 			throw new ApproximatedDateParseException("Incorret approximated date format");
 		}

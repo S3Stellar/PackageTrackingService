@@ -83,7 +83,7 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 		// Update Approx. arrival date
 		if (track.getApproximatedArrivalDate() != null && !track.getApproximatedArrivalDate().isEmpty()
-				&& !oldTrack.getApproximatedArrivalDate().equals(track.getApproximatedArrivalDate()))
+				&& !oldTrack.getApproximatedArrivalDate().equals(parseDate(track.getApproximatedArrivalDate())))
 			oldTrack.setApproximatedArrivalDate(parseDate(track.getApproximatedArrivalDate()));
 
 		// Update status
