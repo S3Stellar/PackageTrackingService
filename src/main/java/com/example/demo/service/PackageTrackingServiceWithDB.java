@@ -12,10 +12,14 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.Converter.TrackConverter;
+import com.example.demo.boundary.History;
+import com.example.demo.boundary.Status;
 import com.example.demo.boundary.TrackBoundary;
+import com.example.demo.boundary.User;
 import com.example.demo.consumers.RestUserConsumer;
 import com.example.demo.dal.PackageTrackingDao;
 import com.example.demo.data.Track;
+import com.example.demo.exceptions.IncorrectStatusException;
 import com.example.demo.exceptions.InvalidEmailException;
 import com.example.demo.exceptions.NoSuchTrackException;
 
@@ -43,25 +47,70 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 	@Override
 	public TrackBoundary create(TrackBoundary trackBoundary) {
-
-		restUserConsumer.getUser(trackBoundary.getUser().getEmail());
-		Track track = this.trackConverter.toEntity(trackBoundary);
-		track = this.packageTrackingDao.save(track);
-		return this.trackConverter.toBoundary(track);
+		User user = restUserConsumer.getUser(trackBoundary.getUser().getEmail());
+		if (user != null && !user.getEmail().isEmpty()) {
+			// TODO - Check if shoppingCartId exists && expired == true
+			Track track = this.trackConverter.toEntity(trackBoundary);
+			track = this.packageTrackingDao.save(track);
+			return this.trackConverter.toBoundary(track);
+		}
+		return null;
 	}
 
 	@Override
 	public TrackBoundary getSpecificTrack(String trackId) {
-		return this.trackConverter
-				.toBoundary(this.packageTrackingDao.findById(trackId)
+
+		return this.trackConverter.toBoundary(this.packageTrackingDao.findById(trackId)
 				.orElseThrow(() -> new NoSuchTrackException("Track with id " + trackId + "wasn't found")));
+
 	}
 
 	@Override
 	public void updateTrack(TrackBoundary track, String trackId) {
-		// TODO Auto-generated method stub
+		Track oldTrack = this.packageTrackingDao.findById(trackId).orElseThrow(() -> new RuntimeException());
+		
+		// Update history list
+		History oldInfo = new History();
+		oldInfo.setCreatedTimestamp(oldTrack.getCreatedTimestamp());
+		oldInfo.setDescription(oldTrack.getDescription());
+		oldInfo.setStatus(oldTrack.getStatus());
+		oldTrack.getHistory().add(oldInfo);
+		
+		// Update description
+		if (track.getDescription() != null && !track.getDescription().isEmpty()
+				&& !oldTrack.getDescription().equals(track.getDescription()))
+			oldTrack.setDescription(track.getDescription());
 
+		// Update Approx. arrival date
+		if (track.getApproximatedArrivalDate() != null && !track.getApproximatedArrivalDate().isEmpty()
+				&& !oldTrack.getApproximatedArrivalDate().equals(track.getApproximatedArrivalDate()))
+			oldTrack.setApproximatedArrivalDate(parseDate(track.getApproximatedArrivalDate()));
+
+		// Update status
+		if (track.getStatus() != null) {
+			switch (track.getStatus()) {
+			case ACCEPTED:
+					oldTrack.setStatus(track.getStatus());
+				break;
+			case ARRIVED:
+				if (oldTrack.getStatus() == Status.LOST || oldTrack.getStatus() == Status.DEPARTED)
+					oldTrack.setStatus(track.getStatus());
+				break;
+			case DEPARTED:
+				throw new IncorrectStatusException("Cannot update to this status.");
+			case LOST:
+				if (oldTrack.getStatus() == Status.ARRIVED || oldTrack.getStatus() == Status.DEPARTED)
+					oldTrack.setStatus(track.getStatus());
+				break;
+			default:
+				throw new IncorrectStatusException("Failed to update status.");
+			}
+		}
+		// Update created timestamp
+		oldTrack.setCreatedTimestamp(new Date());
+		this.packageTrackingDao.save(oldTrack);
 	}
+
 
 	@Override
 	public void deleteAll() {
