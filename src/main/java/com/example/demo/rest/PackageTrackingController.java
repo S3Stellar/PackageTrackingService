@@ -29,7 +29,6 @@ public class PackageTrackingController {
 
 	@RequestMapping(path = "/tracks/{trackId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public TrackBoundary getSpecificTrack(@PathVariable("trackId") String trackId) {
-
 		return this.packageTrackingService.getSpecificTrack(trackId);
 	}
 
@@ -43,7 +42,7 @@ public class PackageTrackingController {
 		this.packageTrackingService.deleteAll();
 	}
 
-	@RequestMapping(path = "/tracks/{email}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(path = "/tracks/byEmail/{email}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public TrackBoundary[] getTracksByEmail(@PathVariable("email") String email,
 			@RequestParam(name = "filterType", required = false, defaultValue = "") String type,
 			@RequestParam(name = "filterValue", required = false) String value,
@@ -69,7 +68,7 @@ public class PackageTrackingController {
 		}
 	}
 
-	@RequestMapping(path = "/tracks/{shoppingCartId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(path = "/tracks/byCartId/{shoppingCartId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public TrackBoundary[] getTrackByShoppingCartId(@PathVariable("shoppingCartId") String shoppingCartId,
 			@RequestParam(name = "sortBy", required = false, defaultValue = "createdTimestamp") String sortBy,
 			@RequestParam(name = "sortOrder", required = false, defaultValue = "DESC") String sortOrder,

@@ -1,8 +1,14 @@
 package com.example.demo.service;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.Converter.TrackConverter;
@@ -10,6 +16,8 @@ import com.example.demo.boundary.TrackBoundary;
 import com.example.demo.consumers.RestUserConsumer;
 import com.example.demo.dal.PackageTrackingDao;
 import com.example.demo.data.Track;
+import com.example.demo.exceptions.InvalidEmailException;
+import com.example.demo.exceptions.NoSuchTrackException;
 
 @Service
 public class PackageTrackingServiceWithDB implements PackageTrackingService {
@@ -17,12 +25,12 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	private PackageTrackingDao packageTrackingDao;
 	private TrackConverter trackConverter;
 	private RestUserConsumer restUserConsumer;
-	
+
 	@Autowired
 	public void setRestUserConsumer(RestUserConsumer restUserConsumer) {
 		this.restUserConsumer = restUserConsumer;
 	}
-	
+
 	@Autowired
 	public void setTrackConverter(TrackConverter trackConverter) {
 		this.trackConverter = trackConverter;
@@ -35,17 +43,18 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 	@Override
 	public TrackBoundary create(TrackBoundary trackBoundary) {
-		
+
 		restUserConsumer.getUser(trackBoundary.getUser().getEmail());
-		Track track = this.trackConverter.toEntity(trackBoundary); 
+		Track track = this.trackConverter.toEntity(trackBoundary);
 		track = this.packageTrackingDao.save(track);
 		return this.trackConverter.toBoundary(track);
 	}
-	
+
 	@Override
 	public TrackBoundary getSpecificTrack(String trackId) {
-		
-		return null;
+		return this.trackConverter
+				.toBoundary(this.packageTrackingDao.findById(trackId)
+				.orElseThrow(() -> new NoSuchTrackException("Track with id " + trackId + "wasn't found")));
 	}
 
 	@Override
@@ -56,22 +65,38 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 	@Override
 	public void deleteAll() {
-		// TODO Auto-generated method stub
+		this.packageTrackingDao.deleteAll();
 
 	}
 
 	@Override
 	public List<TrackBoundary> getTracksByApproximatedArrivalDate(String email, String value, String sortBy,
 			String sortOrder, int page, int size) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!validateUserEmail(email)) {
+			throw new InvalidEmailException("Email must be in the format of example@example.com");
+		}
+		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
+		return this.packageTrackingDao
+		.findAllByUser_emailAndApproximatedArrivalDateGreaterThanEqual(email, parseDate(value), 
+				PageRequest.of(page, size,direction, sortBy))
+		.stream()
+		.map(this.trackConverter::toBoundary).collect(Collectors.toList());		
+		
+		
 	}
 
 	@Override
 	public List<TrackBoundary> getTracksByCreatedTimestamp(String email, String value, String sortBy, String sortOrder,
 			int page, int size) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!validateUserEmail(email)) {
+			throw new InvalidEmailException("Email must be in the format of example@example.com");
+		}
+		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
+		return this.packageTrackingDao
+		.findAllByUser_emailAndCreatedTimestampGreaterThanEqual(email, parseDate(value), 
+				PageRequest.of(page, size,direction, sortBy))
+		.stream()
+		.map(this.trackConverter::toBoundary).collect(Collectors.toList());		
 	}
 
 	@Override
@@ -84,14 +109,49 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	@Override
 	public List<TrackBoundary> getTracksByEmail(String email, String value, String sortBy, String sortOrder, int page,
 			int size) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!validateUserEmail(email)) {
+			throw new InvalidEmailException("Email must be in the format of example@example.com");
+		}
+		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
+		return this.packageTrackingDao
+		.findAllByUser_email(email, 
+				PageRequest.of(page, size,direction, sortBy))
+		.stream()
+		.map(this.trackConverter::toBoundary).collect(Collectors.toList());		
+	
 	}
 
 	@Override
 	public List<TrackBoundary> getTracksByShoppingCartId(String sortBy, String sortOrder, int page, int size) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public Date parseDate(String dateFormat) {
+		try {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			sdf.setLenient(false);
+			Date date = sdf.parse(dateFormat);
+			System.err.println(date);
+			return date;
+			
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
+	
+	public boolean validateUserEmail(String userEmail) {
+		if (userEmail == null || userEmail.isEmpty()) {
+			return false;
+		}
+		String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\."+ 
+                "[a-zA-Z0-9_+&*-]+)*@" + 
+                "(?:[a-zA-Z0-9-]+\\.)+[a-z" + 
+                "A-Z]{2,7}$"; 
+		return Pattern.compile(emailRegex,
+				Pattern.CASE_INSENSITIVE).matcher(userEmail).matches();
+
 	}
 
 }
