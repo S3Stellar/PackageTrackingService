@@ -42,13 +42,13 @@ public class RestOrderConsumer implements RestConsumer<String, Order>{
 		try {
 			response = restTemplate.getForEntity(url + "/shoppingCarts/{shoppingCartId}", Order.class, key);
 		} catch (Exception e) {
-			throw new FailedToFindUserException("Couldn't fetch user: " + key);
+			throw new FailedToFindUserException("Couldn't fetch order: " + key);
 		}
 
 		if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 			return response.getBody();
 		} else {
-			throw new FailedToFindUserException("Couldn't fetch user: " + key);
+			throw new FailedToFindUserException("Couldn't fetch order: " + key);
 		}		
 	}
 
