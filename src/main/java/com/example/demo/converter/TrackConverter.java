@@ -1,4 +1,4 @@
-package com.example.demo.Converter;
+package com.example.demo.converter;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

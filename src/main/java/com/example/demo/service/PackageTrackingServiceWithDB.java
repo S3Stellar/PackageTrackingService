@@ -9,12 +9,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.Converter.TrackConverter;
 import com.example.demo.boundary.History;
 import com.example.demo.boundary.Status;
 import com.example.demo.boundary.TrackBoundary;
 import com.example.demo.boundary.User;
 import com.example.demo.consumers.RestUserConsumer;
+import com.example.demo.converter.TrackConverter;
 import com.example.demo.dal.PackageTrackingDao;
 import com.example.demo.data.Track;
 import com.example.demo.exceptions.IllegalShoppingCartIdException;
@@ -60,7 +60,7 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 	@Override
 	public TrackBoundary create(TrackBoundary trackBoundary) {
-		User user = restUserConsumer.getUser(trackBoundary.getUser().getEmail());
+		User user = restUserConsumer.fetch(trackBoundary.getUser().getEmail());
 		if (!validators.validateUser(user)) {
 			// TODO throw custom exception
 		}

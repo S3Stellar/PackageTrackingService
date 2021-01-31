@@ -8,22 +8,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.example.demo.boundary.User;
+import com.example.demo.boundary.Order;
 import com.example.demo.exceptions.FailedToFindUserException;
 
 @Component
-public class RestUserConsumer implements RestConsumer<String, User> {
+public class RestOrderConsumer implements RestConsumer<String, Order>{
 	private RestTemplate restTemplate;
 	private int port;
 	private String host;
 	private String url;
 
-	@Value(value = "${userHost:localhost}")
+	@Value(value = "${orderHost:localhost}")
 	public void setHost(String host) {
 		this.host = host;
 	}
 
-	@Value(value = "${userPort:8080}")
+	@Value(value = "${orderPort:8083}")
 	public void setPort(int port) {
 		this.port = port;
 	}
@@ -34,12 +34,13 @@ public class RestUserConsumer implements RestConsumer<String, User> {
 		url = "http://" + host + ":" + port;
 	}
 
+
 	@Override
-	public User fetch(String key) {
-		ResponseEntity<User> response;
+	public Order fetch(String key) {
+		ResponseEntity<Order> response;
 
 		try {
-			response = restTemplate.getForEntity(url + "/users/{email}", User.class, key);
+			response = restTemplate.getForEntity(url + "/shoppingCarts/{shoppingCartId}", Order.class, key);
 		} catch (Exception e) {
 			throw new FailedToFindUserException("Couldn't fetch user: " + key);
 		}
@@ -48,7 +49,8 @@ public class RestUserConsumer implements RestConsumer<String, User> {
 			return response.getBody();
 		} else {
 			throw new FailedToFindUserException("Couldn't fetch user: " + key);
-		}
+		}		
 	}
+
 
 }
