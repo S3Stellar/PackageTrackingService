@@ -75,7 +75,7 @@ public class PackageTrackingController {
 			@RequestParam(name = "page", required = false, defaultValue = "0") int page,
 			@RequestParam(name = "size", required = false, defaultValue = "10") int size) {
 
-		return this.packageTrackingService.getTracksByShoppingCartId(sortBy, sortOrder, page, size)
+		return this.packageTrackingService.getTracksByShoppingCartId(shoppingCartId, sortBy, sortOrder, page, size)
 				.toArray(new TrackBoundary[0]);
 	}
 }

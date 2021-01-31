@@ -24,6 +24,6 @@ public interface PackageTrackingService {
 
 	public List<TrackBoundary> getTracksByEmail(String email, String value, String sortBy, String sortOrder, int page, int size);
 
-	public List<TrackBoundary> getTracksByShoppingCartId(String sortBy, String sortOrder, int page, int size);
+	public List<TrackBoundary> getTracksByShoppingCartId(String shoppingCartId, String sortBy, String sortOrder, int page, int size);
 
 }
