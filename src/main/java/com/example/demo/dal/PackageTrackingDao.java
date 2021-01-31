@@ -28,7 +28,5 @@ public interface PackageTrackingDao extends PagingAndSortingRepository<Track, St
 	public List<Track> findAllByUser_emailAndStatus(@Param("email") String email,
 			@Param("status") String value, Pageable pageable);
 
-	
-
 }
 

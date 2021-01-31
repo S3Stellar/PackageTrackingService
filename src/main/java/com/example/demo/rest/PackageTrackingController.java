@@ -63,7 +63,7 @@ public class PackageTrackingController {
 			return this.packageTrackingService.getTracksByStatus(email, value, sortBy, sortOrder, page, size)
 					.toArray(new TrackBoundary[0]);
 		default:
-			return this.packageTrackingService.getTracksByEmail(email, value, sortBy, sortOrder, page, size)
+			return this.packageTrackingService.getTracksByEmail(email, sortBy, sortOrder, page, size)
 					.toArray(new TrackBoundary[0]);
 		}
 	}

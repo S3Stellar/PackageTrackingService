@@ -10,17 +10,22 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.boundary.History;
+import com.example.demo.boundary.Order;
 import com.example.demo.boundary.Status;
 import com.example.demo.boundary.TrackBoundary;
 import com.example.demo.boundary.User;
+import com.example.demo.consumers.RestOrderConsumer;
 import com.example.demo.consumers.RestUserConsumer;
 import com.example.demo.converter.TrackConverter;
 import com.example.demo.dal.PackageTrackingDao;
 import com.example.demo.data.Track;
 import com.example.demo.exceptions.IllegalShoppingCartIdException;
 import com.example.demo.exceptions.IncorrectStatusException;
+import com.example.demo.exceptions.InvalidApproximatedArrivalDate;
 import com.example.demo.exceptions.InvalidEmailException;
-import com.example.demo.exceptions.NoSuchTrackException;
+import com.example.demo.exceptions.NoSuchOrderException;
+import com.example.demo.exceptions.NoSuchUserException;
+import com.example.demo.exceptions.TrackNotFoundException;
 import com.example.demo.utility.DateUtility;
 import com.example.demo.validations.Validators;
 
@@ -30,8 +35,14 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	private PackageTrackingDao packageTrackingDao;
 	private TrackConverter trackConverter;
 	private RestUserConsumer restUserConsumer;
+	private RestOrderConsumer restOrderConsumer;
 	private Validators validators;
 	private DateUtility dateUtils;
+
+	@Autowired
+	public void setRestOrderConsumer(RestOrderConsumer restOrderConsumer) {
+		this.restOrderConsumer = restOrderConsumer;
+	}
 
 	@Autowired
 	public void setRestUserConsumer(RestUserConsumer restUserConsumer) {
@@ -62,21 +73,27 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	public TrackBoundary create(TrackBoundary trackBoundary) {
 		User user = restUserConsumer.fetch(trackBoundary.getUser().getEmail());
 		if (!validators.validateUser(user)) {
-			// TODO throw custom exception
+			throw new NoSuchUserException("No such user.");
 		}
 
-		// TODO - Check if shoppingCartId exists && expired == true
-		Track track = this.trackConverter.toEntity(trackBoundary);
-		track = this.packageTrackingDao.save(track);
-		return this.trackConverter.toBoundary(track);
+		Order order = restOrderConsumer.fetch(trackBoundary.getOrder().getShoppingCartId());
+		System.err.println("ORDER:" + order);
+		if (!validators.validateOrder(order)) {
+			throw new NoSuchOrderException("No such order.");
+		}
 
+		if (!validators.validateApproximatedArrivalDate(trackBoundary.getApproximatedArrivalDate(), new Date()))
+			throw new InvalidApproximatedArrivalDate("Incorrect approx. arrival date.");
+
+		trackBoundary.setStatus(Status.DEPARTED);
+		return this.trackConverter
+				.toBoundary(this.packageTrackingDao.save(this.trackConverter.toEntity(trackBoundary)));
 	}
 
 	@Override
 	public TrackBoundary getSpecificTrack(String trackId) {
 		return this.trackConverter.toBoundary(this.packageTrackingDao.findById(trackId)
-				.orElseThrow(() -> new NoSuchTrackException("Track with id " + trackId + "wasn't found")));
-
+				.orElseThrow(() -> new TrackNotFoundException("Track with id " + trackId + "wasn't found")));
 	}
 
 	@Override
@@ -86,16 +103,20 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 		oldTrack.getHistory().add(oldInfo);
 
 		if (validators.validateDescription(trackBoundary, oldTrack))
-			;
-		oldTrack.setDescription(trackBoundary.getDescription());
+			oldTrack.setDescription(trackBoundary.getDescription());
 
-		if (validators.validateApproximatedArrivalDate(trackBoundary, oldTrack))
-			oldTrack.setApproximatedArrivalDate(dateUtils.parseDate(trackBoundary.getApproximatedArrivalDate()));
+		if (!validators.validateApproximatedArrivalDate(trackBoundary.getApproximatedArrivalDate(),
+				oldTrack.getApproximatedArrivalDate(), oldTrack.getCreatedTimestamp()))
+			throw new InvalidApproximatedArrivalDate("Incorrect approx. arrival date.");
+
+		oldTrack.setApproximatedArrivalDate(dateUtils.parseDate(trackBoundary.getApproximatedArrivalDate()));
 
 		if (trackBoundary.getStatus() != null) {
 			switch (trackBoundary.getStatus()) {
 			case ACCEPTED:
-				oldTrack.setStatus(trackBoundary.getStatus());
+				if (oldTrack.getStatus() == Status.LOST || oldTrack.getStatus() == Status.DEPARTED
+						|| oldTrack.getStatus() == Status.ARRIVED)
+					oldTrack.setStatus(trackBoundary.getStatus());
 				break;
 			case ARRIVED:
 				if (oldTrack.getStatus() == Status.LOST || oldTrack.getStatus() == Status.DEPARTED)
@@ -119,29 +140,38 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	@Override
 	public void deleteAll() {
 		this.packageTrackingDao.deleteAll();
-
 	}
 
 	@Override
 	public List<TrackBoundary> getTracksByApproximatedArrivalDate(String email, String value, String sortBy,
 			String sortOrder, int page, int size) {
+
 		if (!validators.validateUserEmail(email)) {
-			throw new InvalidEmailException("Email must be in the format of example@example.com");
+			throw new InvalidEmailException();
 		}
+
+		if (!validators.validateUser(restUserConsumer.fetch(email))) {
+			throw new NoSuchUserException("No such user.");
+		}
+
 		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
 		return this.packageTrackingDao
 				.findAllByUser_emailAndApproximatedArrivalDateGreaterThanEqual(email, dateUtils.parseDate(value),
 						PageRequest.of(page, size, direction, sortBy))
 				.stream().map(this.trackConverter::toBoundary).collect(Collectors.toList());
-
 	}
 
 	@Override
 	public List<TrackBoundary> getTracksByCreatedTimestamp(String email, String value, String sortBy, String sortOrder,
 			int page, int size) {
 		if (!validators.validateUserEmail(email)) {
-			throw new InvalidEmailException("Email must be in the format of example@example.com");
+			throw new InvalidEmailException();
 		}
+
+		if (!validators.validateUser(restUserConsumer.fetch(email))) {
+			throw new NoSuchUserException("No such user.");
+		}
+
 		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
 		return this.packageTrackingDao
 				.findAllByUser_emailAndCreatedTimestampGreaterThanEqual(email, dateUtils.parseDate(value),
@@ -153,7 +183,11 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	public List<TrackBoundary> getTracksByStatus(String email, String value, String sortBy, String sortOrder, int page,
 			int size) {
 		if (!validators.validateUserEmail(email)) {
-			throw new InvalidEmailException("Email must be in the format of example@example.com");
+			throw new InvalidEmailException();
+		}
+
+		if (!validators.validateUser(restUserConsumer.fetch(email))) {
+			throw new NoSuchUserException("No such user.");
 		}
 		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
 		return this.packageTrackingDao
@@ -162,19 +196,18 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	}
 
 	@Override
-	public List<TrackBoundary> getTracksByEmail(String email, String value, String sortBy, String sortOrder, int page,
-			int size) {
+	public List<TrackBoundary> getTracksByEmail(String email, String sortBy, String sortOrder, int page, int size) {
 		if (!validators.validateUserEmail(email)) {
-			throw new InvalidEmailException("Email must be in the format of example@example.com");
+			throw new InvalidEmailException();
 		}
-		if (!validators.validateStatus(value)) {
-			throw new IncorrectStatusException("Status should be passed as:  DEPARTED, ARRIVED, ACCEPTED or LOST");
+
+		if (!validators.validateUser(restUserConsumer.fetch(email))) {
+			throw new NoSuchUserException("No such user.");
 		}
 
 		Direction direction = sortOrder.equals(Direction.ASC.toString()) ? Direction.ASC : Direction.DESC;
-		return this.packageTrackingDao
-				.findAllByUser_emailAndStatus(email, value, PageRequest.of(page, size, direction, sortBy)).stream()
-				.map(this.trackConverter::toBoundary).collect(Collectors.toList());
+		return this.packageTrackingDao.findAllByUser_email(email, PageRequest.of(page, size, direction, sortBy))
+				.stream().map(this.trackConverter::toBoundary).collect(Collectors.toList());
 
 	}
 

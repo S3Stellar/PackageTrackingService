@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.demo.boundary.User;
-import com.example.demo.exceptions.FailedToFindUserException;
+import com.example.demo.exceptions.NoSuchUserException;
 
 @Component
 public class RestUserConsumer implements RestConsumer<String, User> {
@@ -41,13 +41,13 @@ public class RestUserConsumer implements RestConsumer<String, User> {
 		try {
 			response = restTemplate.getForEntity(url + "/users/{email}", User.class, key);
 		} catch (Exception e) {
-			throw new FailedToFindUserException("Couldn't fetch user: " + key);
+			throw new NoSuchUserException("Couldn't fetch user: " + key);
 		}
 
 		if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 			return response.getBody();
 		} else {
-			throw new FailedToFindUserException("Couldn't fetch user: " + key);
+			throw new NoSuchUserException("Couldn't fetch user: " + key);
 		}
 	}
 

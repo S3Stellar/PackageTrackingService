@@ -3,16 +3,16 @@ package com.example.demo.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(code = HttpStatus.INTERNAL_SERVER_ERROR)
-public class FailedToFindUserException extends RuntimeException {
+@ResponseStatus(code = HttpStatus.NOT_FOUND)
+public class NoSuchUserException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
-	public FailedToFindUserException(String message) {
+	public NoSuchUserException(String message) {
 		super(message);
 	}
 
-	public FailedToFindUserException() {
+	public NoSuchUserException() {
 	}
 
 }

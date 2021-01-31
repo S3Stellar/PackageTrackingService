@@ -14,16 +14,18 @@ public interface PackageTrackingService {
 
 	public void deleteAll();
 
-	public List<TrackBoundary> getTracksByApproximatedArrivalDate(String email, String value, String sortBy, String sortOrder,
+	public List<TrackBoundary> getTracksByApproximatedArrivalDate(String email, String value, String sortBy,
+			String sortOrder, int page, int size);
+
+	public List<TrackBoundary> getTracksByCreatedTimestamp(String email, String value, String sortBy, String sortOrder,
 			int page, int size);
 
-	public List<TrackBoundary> getTracksByCreatedTimestamp(String email, String value, String sortBy, String sortOrder, int page,
+	public List<TrackBoundary> getTracksByStatus(String email, String value, String sortBy, String sortOrder, int page,
 			int size);
 
-	public List<TrackBoundary> getTracksByStatus(String email, String value, String sortBy, String sortOrder, int page, int size);
+	public List<TrackBoundary> getTracksByEmail(String email, String sortBy, String sortOrder, int page, int size);
 
-	public List<TrackBoundary> getTracksByEmail(String email, String value, String sortBy, String sortOrder, int page, int size);
-
-	public List<TrackBoundary> getTracksByShoppingCartId(String shoppingCartId, String sortBy, String sortOrder, int page, int size);
+	public List<TrackBoundary> getTracksByShoppingCartId(String shoppingCartId, String sortBy, String sortOrder,
+			int page, int size);
 
 }

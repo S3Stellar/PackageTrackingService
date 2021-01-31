@@ -1,10 +1,12 @@
 package com.example.demo.validations;
 
+import java.util.Date;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.example.demo.boundary.Order;
 import com.example.demo.boundary.Status;
 import com.example.demo.boundary.TrackBoundary;
 import com.example.demo.boundary.User;
@@ -36,19 +38,33 @@ public class Validators {
 				&& !track.getDescription().equals(trackBoundary.getDescription());
 	}
 
-	public boolean validateApproximatedArrivalDate(TrackBoundary trackBoundary, Track track) {
-		return trackBoundary.getApproximatedArrivalDate() != null
-				&& !trackBoundary.getApproximatedArrivalDate().isEmpty() && !track.getApproximatedArrivalDate()
-						.equals(dateUtils.parseDate(trackBoundary.getApproximatedArrivalDate()));
+	public boolean validateApproximatedArrivalDate(String boundaryDate, Date oldDate, Date createdDate) {
+		return boundaryDate != null && !boundaryDate.isEmpty() && oldDate != null
+				&& dateStartAfterDate(dateUtils.parseDate(boundaryDate), createdDate);
+	}
+
+	public boolean validateApproximatedArrivalDate(String boundaryDate, Date createdDate) {
+		return boundaryDate != null && !boundaryDate.isEmpty()
+				&& dateStartAfterDate(dateUtils.parseDate(boundaryDate), createdDate);
+	}
+
+	public boolean dateStartAfterDate(Date approximateDate, Date createdDate) {
+		return createdDate.before(approximateDate);
 	}
 
 	public boolean validateShppingCartId(String shoppingCartId) {
 		return shoppingCartId != null && !shoppingCartId.isEmpty();
 	}
 
-	public boolean validateStatus(String value) {
-		return value.equals(Status.ACCEPTED.toString()) || value.equals(Status.ARRIVED.toString())
-				|| value.equals(Status.DEPARTED.toString()) || value.equals(Status.LOST.toString());
+	public boolean validateStatus(Status value) {
+		return value.equals(Status.ACCEPTED) || value.equals(Status.ARRIVED) || value.equals(Status.DEPARTED)
+				|| value.equals(Status.LOST);
+
+	}
+
+	public boolean validateOrder(Order order) {
+		return  order.getShoppingCartId() != null && !order.getShoppingCartId().isEmpty()
+				&& order.getExpired();
 
 	}
 }

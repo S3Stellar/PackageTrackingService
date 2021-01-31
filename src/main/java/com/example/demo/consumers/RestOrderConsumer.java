@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.demo.boundary.Order;
-import com.example.demo.exceptions.FailedToFindUserException;
+import com.example.demo.exceptions.NoSuchUserException;
 
 @Component
 public class RestOrderConsumer implements RestConsumer<String, Order>{
@@ -42,13 +42,13 @@ public class RestOrderConsumer implements RestConsumer<String, Order>{
 		try {
 			response = restTemplate.getForEntity(url + "/shoppingCarts/{shoppingCartId}", Order.class, key);
 		} catch (Exception e) {
-			throw new FailedToFindUserException("Couldn't fetch order: " + key);
+			throw new NoSuchUserException("Couldn't fetch order: " + key);
 		}
 
 		if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 			return response.getBody();
 		} else {
-			throw new FailedToFindUserException("Couldn't fetch order: " + key);
+			throw new NoSuchUserException("Couldn't fetch order: " + key);
 		}		
 	}
 
