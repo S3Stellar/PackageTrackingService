@@ -21,6 +21,6 @@ public class KafkaConsumer {
 
 	@Bean
 	public Consumer<TrackBoundary> receiveAndHandlePostTrack() {
-		return t->packageTrackingService.create(t);
+		return t -> packageTrackingService.create(t);
 	}
 }

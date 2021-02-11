@@ -13,7 +13,6 @@ public class DateUtility {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 			sdf.setLenient(false);
 			Date date = sdf.parse(dateFormat);
-			System.err.println(date);
 			return date;
 			
 		} catch (Exception e) {

@@ -10,10 +10,10 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.boundary.History;
-import com.example.demo.boundary.Order;
 import com.example.demo.boundary.Status;
 import com.example.demo.boundary.TrackBoundary;
 import com.example.demo.boundary.User;
+import com.example.demo.consumers.OrderResponse;
 import com.example.demo.consumers.RestOrderConsumer;
 import com.example.demo.consumers.RestUserConsumer;
 import com.example.demo.converter.TrackConverter;
@@ -26,6 +26,7 @@ import com.example.demo.exceptions.InvalidEmailException;
 import com.example.demo.exceptions.NoSuchOrderException;
 import com.example.demo.exceptions.NoSuchUserException;
 import com.example.demo.exceptions.TrackNotFoundException;
+import com.example.demo.exceptions.UserEmailConflictException;
 import com.example.demo.utility.DateUtility;
 import com.example.demo.validations.Validators;
 
@@ -75,15 +76,16 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 		if (!validators.validateUser(user)) {
 			throw new NoSuchUserException("No such user.");
 		}
-
-		Order order = restOrderConsumer.fetch(trackBoundary.getOrder().getShoppingCartId());
-		System.err.println("ORDER:" + order);
-		if (!validators.validateOrder(order)) {
+		OrderResponse response = restOrderConsumer.fetch(trackBoundary.getOrder().getShoppingCartId());
+		if (!response.getUser().getEmail().equals(user.getEmail())) {
+			throw new UserEmailConflictException("User email don't match user order");
+		}
+		if (!validators.validateOrder(response.getOrder())) {
 			throw new NoSuchOrderException("No such order.");
 		}
 
 		if (!validators.validateApproximatedArrivalDate(trackBoundary.getApproximatedArrivalDate(), new Date()))
-			throw new InvalidApproximatedArrivalDate("Incorrect approx. arrival date.");
+			throw new InvalidApproximatedArrivalDate("Incorrect approximated arrival date.");
 
 		trackBoundary.setStatus(Status.DEPARTED);
 		return this.trackConverter
@@ -93,12 +95,13 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 	@Override
 	public TrackBoundary getSpecificTrack(String trackId) {
 		return this.trackConverter.toBoundary(this.packageTrackingDao.findById(trackId)
-				.orElseThrow(() -> new TrackNotFoundException("Track with id " + trackId + "wasn't found")));
+				.orElseThrow(() -> new TrackNotFoundException("Track with id " + trackId + " wasn't found")));
 	}
 
 	@Override
 	public void updateTrack(TrackBoundary trackBoundary, String trackId) {
-		Track oldTrack = this.packageTrackingDao.findById(trackId).orElseThrow(() -> new RuntimeException());
+		Track oldTrack = this.packageTrackingDao.findById(trackId)
+				.orElseThrow(() -> new TrackNotFoundException("Track with id " + trackId + " wasn't found."));
 		History oldInfo = new History(oldTrack.getCreatedTimestamp(), oldTrack.getStatus(), oldTrack.getDescription());
 		oldTrack.getHistory().add(oldInfo);
 
@@ -107,32 +110,33 @@ public class PackageTrackingServiceWithDB implements PackageTrackingService {
 
 		if (!validators.validateApproximatedArrivalDate(trackBoundary.getApproximatedArrivalDate(),
 				oldTrack.getApproximatedArrivalDate(), oldTrack.getCreatedTimestamp()))
-			throw new InvalidApproximatedArrivalDate("Incorrect approx. arrival date.");
+			throw new InvalidApproximatedArrivalDate("Incorrect approximated arrival date.");
 
 		oldTrack.setApproximatedArrivalDate(dateUtils.parseDate(trackBoundary.getApproximatedArrivalDate()));
-
+		boolean validState = false;
 		if (trackBoundary.getStatus() != null) {
 			switch (trackBoundary.getStatus()) {
 			case ACCEPTED:
 				if (oldTrack.getStatus() == Status.LOST || oldTrack.getStatus() == Status.DEPARTED
 						|| oldTrack.getStatus() == Status.ARRIVED)
-					oldTrack.setStatus(trackBoundary.getStatus());
+					validState = true;
 				break;
 			case ARRIVED:
 				if (oldTrack.getStatus() == Status.LOST || oldTrack.getStatus() == Status.DEPARTED)
-					oldTrack.setStatus(trackBoundary.getStatus());
+					validState = true;
 				break;
 			case DEPARTED:
-				throw new IncorrectStatusException("Cannot update to this status.");
+				throw new IncorrectStatusException(
+						"Cannot change state from " + oldTrack.getStatus() + " to " + trackBoundary.getStatus());
 			case LOST:
 				if (oldTrack.getStatus() == Status.ARRIVED || oldTrack.getStatus() == Status.DEPARTED)
-					oldTrack.setStatus(trackBoundary.getStatus());
-				break;
-			default:
-				throw new IncorrectStatusException("Failed to update status.");
+					validState = true;
 			}
 		}
-
+		if (!validState)
+			throw new IncorrectStatusException(
+					"Cannot change state from " + oldTrack.getStatus() + " to " + trackBoundary.getStatus());
+		oldTrack.setStatus(trackBoundary.getStatus());
 		oldTrack.setCreatedTimestamp(new Date());
 		this.packageTrackingDao.save(oldTrack);
 	}

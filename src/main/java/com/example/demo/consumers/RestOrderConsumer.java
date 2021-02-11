@@ -8,11 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.example.demo.boundary.Order;
 import com.example.demo.exceptions.NoSuchUserException;
 
 @Component
-public class RestOrderConsumer implements RestConsumer<String, Order>{
+public class RestOrderConsumer implements RestConsumer<String, OrderResponse>{
 	private RestTemplate restTemplate;
 	private int port;
 	private String host;
@@ -34,13 +33,13 @@ public class RestOrderConsumer implements RestConsumer<String, Order>{
 		url = "http://" + host + ":" + port;
 	}
 
-
+	
 	@Override
-	public Order fetch(String key) {
-		ResponseEntity<Order> response;
+	public OrderResponse fetch(String key) {
+		ResponseEntity<OrderResponse> response;
 
 		try {
-			response = restTemplate.getForEntity(url + "/shoppingCarts/{shoppingCartId}", Order.class, key);
+			response = restTemplate.getForEntity(url + "/shoppingCarts/{shoppingCartId}", OrderResponse.class, key);
 		} catch (Exception e) {
 			throw new NoSuchUserException("Couldn't fetch order: " + key);
 		}
@@ -51,6 +50,7 @@ public class RestOrderConsumer implements RestConsumer<String, Order>{
 			throw new NoSuchUserException("Couldn't fetch order: " + key);
 		}		
 	}
+	
 
 
 }

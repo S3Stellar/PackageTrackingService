@@ -13,20 +13,15 @@ public interface PackageTrackingDao extends PagingAndSortingRepository<Track, St
 
 	public List<Track> findAllByUser_emailAndApproximatedArrivalDateGreaterThanEqual(@Param("email") String email,
 			@Param("date") Date date, Pageable pageable);
-	
-	
+
 	public List<Track> findAllByUser_emailAndCreatedTimestampGreaterThanEqual(@Param("email") String email,
 			@Param("date") Date date, Pageable pageable);
-	
-	
+
 	public List<Track> findAllByUser_email(@Param("email") String email, Pageable pageable);
-	
-	
+
 	public List<Track> findAllByOrder_shoppingCartId(@Param("shoppingCartId") String shoppingCartId, Pageable pageable);
 
-
-	public List<Track> findAllByUser_emailAndStatus(@Param("email") String email,
-			@Param("status") String value, Pageable pageable);
+	public List<Track> findAllByUser_emailAndStatus(@Param("email") String email, @Param("status") String value,
+			Pageable pageable);
 
 }
-

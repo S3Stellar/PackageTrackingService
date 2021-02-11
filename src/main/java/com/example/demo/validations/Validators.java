@@ -63,8 +63,7 @@ public class Validators {
 	}
 
 	public boolean validateOrder(Order order) {
-		return  order.getShoppingCartId() != null && !order.getShoppingCartId().isEmpty()
-				&& order.getExpired();
+		return order.getShoppingCartId() != null && !order.getShoppingCartId().isEmpty() && order.getExpired();
 
 	}
 }

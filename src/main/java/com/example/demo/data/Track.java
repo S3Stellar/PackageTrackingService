@@ -19,9 +19,7 @@ public class Track {
 	private User user;
 	private Order order;
 	private String address;
-	// @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
 	private Date createdTimestamp;
-	// @JsonFormat(pattern = "yyyy-MM-dd")
 	private Date approximatedArrivalDate;
 	private Status status;
 	private String description;
@@ -34,32 +32,6 @@ public class Track {
 	public Track(User user, Order order, String address, Date createdTimestamp, Date approximatedArrivalDate,
 			Status status, String description, List<History> history) {
 		super();
-		this.user = user;
-		this.order = order;
-		this.address = address;
-		this.createdTimestamp = createdTimestamp;
-		this.approximatedArrivalDate = approximatedArrivalDate;
-		this.status = status;
-		this.description = description;
-		this.history = history;
-	}
-
-	public Track(User user, Order order, String address, Date approximatedArrivalDate, Status status,
-			String description, List<History> history) {
-		super();
-		this.user = user;
-		this.order = order;
-		this.address = address;
-		this.approximatedArrivalDate = approximatedArrivalDate;
-		this.status = status;
-		this.description = description;
-		this.history = history;
-	}
-
-	public Track(String trackId, User user, Order order, String address, Date createdTimestamp,
-			Date approximatedArrivalDate, Status status, String description, List<History> history) {
-		super();
-		this.trackId = trackId;
 		this.user = user;
 		this.order = order;
 		this.address = address;
